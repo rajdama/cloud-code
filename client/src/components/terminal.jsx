@@ -17,6 +17,10 @@ const Terminal = () => {
     socket.on("terminal:data", (data) => {
       term.write(data);
     });
+
+    // return () => {
+    //   socket.off("terminal:data");
+    // };
   }, []);
 
   return <div ref={terminalRef} id="terminal" />;

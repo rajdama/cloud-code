@@ -4,6 +4,7 @@ const fs = require("fs/promises");
 const { Server: SocketServer } = require("socket.io");
 const path = require("path");
 const cors = require("cors");
+const chokidar = require("chokidar");
 
 const pty = require("node-pty");
 const ptyProcess = pty.spawn("powershell.exe", [], {
@@ -24,8 +25,12 @@ app.use(cors());
 
 io.attach(server);
 
+chokidar.watch("./user").on("all", (event, path) => {
+  io.emit("file:refresh", path);
+});
+
 ptyProcess.onData((data) => {
-  console.log(data);
+  // console.log(data);
   io.emit("terminal:data", data);
 });
 
@@ -33,7 +38,7 @@ io.on("connection", (socket) => {
   console.log(`Socket connected`, socket.id);
 
   socket.on("terminal:write", (data) => {
-    console.log("Term", data);
+    // console.log("Term", data);
     ptyProcess.write(data);
   });
 });
