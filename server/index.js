@@ -41,6 +41,10 @@ io.on("connection", (socket) => {
     // console.log("Term", data);
     ptyProcess.write(data);
   });
+
+  socket.on("file:change", async ({ path, content }) => {
+    await fs.writeFile(`./user${path}`, content);
+  });
 });
 
 app.get("/files", async (req, res) => {
