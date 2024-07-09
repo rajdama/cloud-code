@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 import Terminal from "./components/terminal";
 import "@xterm/xterm/css/xterm.css";
@@ -13,7 +13,10 @@ import "ace-builds/src-noconflict/ext-language_tools";
 function App() {
   const [fileTree, setFileTree] = useState({});
   const [selectedFile, setSelectedFile] = useState("");
+  const [selectedFileContent, setSelectedFileContent] = useState("");
   const [code, setCode] = useState("");
+
+  let isSaved = selectedFileContent === code;
 
   const getFileTree = async () => {
     const response = await fetch("http://localhost:9000/files");
@@ -21,9 +24,32 @@ function App() {
     setFileTree(result.tree);
   };
 
+  const getFileContents = useCallback(async () => {
+    if (!selectedFile) return;
+    const response = await fetch(
+      `http://localhost:9000/files/content?path=${selectedFile}`
+    );
+    const result = await response.json();
+    setSelectedFileContent(result.content);
+  }, [selectedFile]);
+
+  useEffect(() => {
+    if (selectedFile && selectedFileContent) {
+      setCode(selectedFileContent);
+    }
+  }, [selectedFile, selectedFileContent]);
+
   useEffect(() => {
     getFileTree();
   }, []);
+
+  useEffect(() => {
+    getFileTree();
+  }, []);
+
+  useEffect(() => {
+    if (selectedFile) getFileContents();
+  }, [getFileContents, selectedFile]);
 
   useEffect(() => {
     socket.on("file:refresh", getFileTree);
@@ -33,7 +59,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (code) {
+    setCode("");
+  }, [selectedFile]);
+
+  useEffect(() => {
+    if (code && !isSaved) {
       const timer = setTimeout(() => {
         socket.emit("file:change", {
           path: selectedFile,
@@ -41,11 +71,13 @@ function App() {
         });
       }, 5 * 1000);
 
+      isSaved = true;
+
       return () => {
         clearTimeout(timer);
       };
     }
-  }, [code]);
+  }, [code, selectedFile, isSaved]);
 
   return (
     <div>
@@ -60,8 +92,17 @@ function App() {
             />
           </div>
           <div className="editor">
-            {selectedFile && <p>{selectedFile.replaceAll("/", " > ")}</p>}
-            <AceEditor value={code} onChange={(e) => setCode(e)} />
+            {selectedFile && (
+              <p>
+                {selectedFile.replaceAll("/", " > ")}{" "}
+                {isSaved ? "Saved" : "Unsaved"}
+              </p>
+            )}
+            <AceEditor
+              theme="ace-cobalt"
+              value={code}
+              onChange={(e) => setCode(e)}
+            />
           </div>
         </div>
         <Terminal />

@@ -10,7 +10,7 @@ const FileTreeNode = ({ fileName, nodes, onSelect, path }) => {
       style={{ marginLeft: "10px" }}
     >
       <p className={isDir ? "" : "file-node"}>{fileName}</p>
-      {nodes && (
+      {nodes && fileName !== "node_modules" && (
         <ul>
           {Object.keys(nodes).map((child, index) => {
             return (
